@@ -328,7 +328,10 @@ void BaseThread::stop()
 	if (m_pPrivates->m_pThread)
 	{
 		m_pPrivates->m_pThread->interrupt();
-		m_pPrivates->m_pThread->join();
+		if (m_pPrivates->m_pThread->joinable())
+		{
+			m_pPrivates->m_pThread->join();
+		}
 	}
 }
 
@@ -343,10 +346,12 @@ void BaseThread::nonBlockStop()
 
 void BaseThread::join()
 {
-	if (!m_pPrivates->m_pThread)
+	boost::thread* thread = m_pPrivates->m_pThread;
+	if (!thread)
 		return;
 
-	m_pPrivates->m_pThread->join();
+	if(thread->joinable())
+		thread->join();
 }
 
 void BaseThread::setPriority(PRIORITY priority)

@@ -40,6 +40,10 @@
 #   INSTALL_DESKTOP_FILE                INSTALL a desktop file in /usr/share/applications
 #                   OFF
 #
+# wxWidgets select correct  version
+#   wxWidgets_CONFIG_EXECUTABLE         path to wx-config (version 2.9.3)
+#   wxWidgets_wxrc_EXECUTABLE           path to wxrc (version 2.9.3)
+#
 # windows-only options:
 #   BOOST_URL                           URL to boost archive
 #
@@ -109,24 +113,29 @@ if(NOT WIN32)
 endif()
 
 if(NOT BUILD_ONLY_CEF)
-  if(NOT WIN32)
-    find_package(Boost COMPONENTS date_time filesystem thread system REQUIRED)
-    find_package(Notify REQUIRED)
+  if(MINGW)
+    set(Boost_ADDITION_LIBS ${Boost_ADDITION_LIBS} chrono)
   endif()
-  find_package(BZip2 ${REQUIRED_IF_OPTION})
-
+  if(BUILD_TESTS)
+    set(Boost_ADDITION_LIBS ${Boost_ADDITION_LIBS} prg_exec_monitor test_exec_monitor unit_test_framework)
+  endif()
+  find_package(Boost COMPONENTS date_time filesystem thread system ${Boost_ADDITION_LIBS})
+  
   if(NOT WITH_ARES)
     find_package(CURL ${REQUIRED_IF_OPTION})
   endif()
 
-  # we patch google breakpad, so we will build it on our own
-  # find_package(GoogleBreakpad REQUIRED)
   if(NOT WIN32)
     find_package(GTK2 REQUIRED)
+    find_package(Notify REQUIRED)
+    if(NOT HAVE_LIBNOTIFY_0_7)
+      message(FATAL_ERROR "libnotify >= 0.7 is required")
+    endif()
   endif()
   if(NOT WIN32)
     find_package(OpenSSL REQUIRED)
   endif()
+  find_package(BZip2 ${REQUIRED_IF_OPTION})
   find_package(Sqlite ${REQUIRED_IF_OPTION})
   find_package(TinyXML ${REQUIRED_IF_OPTION})
   find_package(v8 ${REQUIRED_ON_UNIX})
@@ -139,8 +148,12 @@ if(wxWidgets_FOUND)
     "${CMAKE_TEST_PROJECTS_BIN}/wxWidget_2.9_test"
     "${CMAKE_TEST_PROJECTS}/wxWidget_2.9_test"
     "wxWidget_2_9_test"
-    "wxWidget_2_9_test")
+    "wxWidget_2_9_test"
+    CMAKE_FLAGS
+    "-DwxWidgets_CONFIG_EXECUTABLE=${wxWidgets_CONFIG_EXECUTABLE}"
+    "-DwxWidgets_wxrc_EXECUTABLE=${wxWidgets_wxrc_EXECUTABLE}")
   if(NOT WXWIDGET_2_9_TEST_COMPILE)
+    message(STATUS "no working wxWidgets-2.9.3 found")
     unset(wxWidgets_FOUND)
     if(REQUIRED_IF_OPTION)
       message(FATAL_ERROR "no wxWidget-2.9.3 found")
@@ -159,11 +172,11 @@ endif()
 ###############################################################################
 
 if(WIN32)
-  set(BOOST_URL_DEFAULT "http://downloads.sourceforge.net/project/boost/boost/1.49.0/boost_1_49_0.zip")
+  set(BOOST_URL_DEFAULT "http://downloads.sourceforge.net/project/boost/boost/1.51.0/boost_1_51_0.zip")
   set(BOOST_URL ${BOOST_URL_DEFAULT}
       CACHE STRING "URL to boost archive")
   if(BOOST_URL STREQUAL BOOST_URL_DEFAULT)
-    set(BOOST_MD5 854dcbbff31b896c85c38247060b7713)
+    set(BOOST_MD5 ee8112e48088b05c248d68329cd5d908)
   else()
     unset(BOOST_MD5)
   endif()
@@ -229,7 +242,7 @@ endif()
 # for windows
 set(CURL_GIT git://github.com/bagder/curl.git)
 set(CURL_VERSION tags/curl-7_25_0)
-set(V8_SVN http://v8.googlecode.com/svn/tags/3.9.9/)
+set(V8_SVN http://v8.googlecode.com/svn/tags/3.9.15/)
 
 ###############################################################################
 # build some externel projects
