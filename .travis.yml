@@ -1,0 +1,31 @@
+language: cpp
+compiler: gcc
+before_install:
+  - sudo ./install-deps.sh
+  - wget "http://ppa.launchpad.net/fransschreuder1/usbpicprog-stable/ubuntu/pool/main/w/wxwidgets2.9/libwxgtk2.9-dev_2.9.3-1_i386.deb"
+  - wget "http://ppa.launchpad.net/fransschreuder1/usbpicprog-stable/ubuntu/pool/main/w/wxwidgets2.9/wx2.9-headers_2.9.3-1_i386.deb"
+  - wget "http://ppa.launchpad.net/fransschreuder1/usbpicprog-stable/ubuntu/pool/main/w/wxwidgets2.9/libwxgtk2.9-0_2.9.3-1_i386.deb"
+  - wget "http://ppa.launchpad.net/fransschreuder1/usbpicprog-stable/ubuntu/pool/main/w/wxwidgets2.9/libwxbase2.9-dev_2.9.3-1_i386.deb"
+  - wget "http://ppa.launchpad.net/fransschreuder1/usbpicprog-stable/ubuntu/pool/main/w/wxwidgets2.9/libwxbase2.9-0_2.9.3-1_i386.deb"
+  - sudo dpkg --install libwxbase2.9-0_2.9.3-1_i386.deb
+  - sudo dpkg --install libwxgtk2.9-0_2.9.3-1_i386.deb
+  - sudo dpkg --install wx2.9-headers_2.9.3-1_i386.deb
+  - sudo dpkg --install libwxbase2.9-dev_2.9.3-1_i386.deb
+  - sudo dpkg --install libwxgtk2.9-dev_2.9.3-1_i386.deb
+before_script:
+  - mkdir build
+  - cd build
+script:
+  - cmake .. -DBUILD_CEF=off -DWITH_ARES=off -DFORCE_SYS_DEPS=on -DDEBUG=on
+  - make -j4
+  - ctest --output-on-failure .
+notifications:
+  irc:
+    channels:
+      - "irc.freenode.org#desura"
+    template:
+      - "%{repository} (%{commit}) by %{author} : %{message} %{foo} "
+      - "Build details: %{build_url}"
+      - "Latest commit: %{compare_url}"
+    on_success: change
+    on_failure: change
