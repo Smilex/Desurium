@@ -11,9 +11,7 @@ endif()
 add_executable(mcf_extract ${Sources})
 target_link_libraries(mcf_extract
   mcfcore
-  ${OPENSSL_LIBRARIES}
   ${LINUX_LIBRARIES}
 )
 
-install(TARGETS mcf_extract
-        DESTINATION "${BIN_INSTALL_DIR}")
+install_executable(mcf_extract)

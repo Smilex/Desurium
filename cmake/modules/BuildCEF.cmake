@@ -25,8 +25,8 @@ if(BUILD_CEF OR BUILD_ONLY_CEF)
     )
   endif()
 
-  if(NOT WIN32)
-    set(chromium_INSTALL_COMMAND "${CMAKE_SCRIPT_PATH}/fix_chromium_path.${SCRIPT_PREFIX}")
+  if(NOT WIN32 OR MINGW)
+    set(chromium_INSTALL_COMMAND "${CMAKE_SCRIPT_PATH}/fix_chromium_path.sh")
   endif()
 
   ExternalProject_Add(
@@ -37,7 +37,22 @@ if(BUILD_CEF OR BUILD_ONLY_CEF)
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     BUILD_IN_SOURCE 1
-    INSTALL_COMMAND "${chromium_INSTALL_COMMAND}"
+    INSTALL_COMMAND ""
+  )
+  
+  ExternalProject_Get_Property(
+    chromium
+    source_dir
+  )
+  set(CHROMIUM_SOURCE_DIR ${source_dir})
+  
+  ExternalProject_Add_Step(
+    chromium
+    chromium_move
+    COMMAND "${chromium_INSTALL_COMMAND}"
+    DEPENDERS install
+	DEPENDEES download
+	WORKING_DIRECTORY ${CHROMIUM_SOURCE_DIR}/..
   )
 
   ExternalProject_Add(
@@ -45,7 +60,7 @@ if(BUILD_CEF OR BUILD_ONLY_CEF)
     URL ${CEF_URL}
     URL_MD5 ${CEF_MD5}
     UPDATE_COMMAND ""
-    PATCH_COMMAND ${CMAKE_SCRIPT_PATH}/patch.${SCRIPT_PREFIX} ${CMAKE_SOURCE_DIR}/cmake/patches/cef.patch
+    PATCH_COMMAND ${PATCH_SCRIPT_PATH} ${CMAKE_SOURCE_DIR}/cmake/patches/cef.patch
     CONFIGURE_COMMAND ""
     BUILD_COMMAND "" 
     INSTALL_COMMAND ""
@@ -61,7 +76,7 @@ if(BUILD_CEF OR BUILD_ONLY_CEF)
   ExternalProject_Add_Step(
     fetch_cef
     cef_gyp-patch
-    COMMAND ${CMAKE_SCRIPT_PATH}/patch.sh ${CMAKE_BINARY_DIR}/gen/patches/cef_gyp.patch
+    COMMAND ${PATCH_SCRIPT_PATH} ${CMAKE_BINARY_DIR}/gen/patches/cef_gyp.patch
     DEPENDEES patch
     WORKING_DIRECTORY ${FETCH_CEF_SOURCE_DIR}
   )
@@ -77,17 +92,12 @@ if(BUILD_CEF OR BUILD_ONLY_CEF)
   )
 
   ExternalProject_Get_Property(
-    chromium
-    source_dir
-  )
-  set(CHROMIUM_SOURCE_DIR ${source_dir})
-  ExternalProject_Get_Property(
     fetch_cef
     source_dir
   )
   set(CEF_SOURCE_DIR ${source_dir})
 
-  if(NOT WIN32)
+  if(NOT WIN32 OR MINGW)
     ExternalProject_Add_Step(
     cef
     copy_files
@@ -99,7 +109,7 @@ if(BUILD_CEF OR BUILD_ONLY_CEF)
     ExternalProject_Add_Step(
     cef
     glib-2-32-patch
-    COMMAND ${CMAKE_SCRIPT_PATH}/patch.sh ${CMAKE_SOURCE_DIR}/cmake/patches/cef_glib_2_32_compile.patch
+    COMMAND ${PATCH_SCRIPT_PATH} ${CMAKE_SOURCE_DIR}/cmake/patches/cef_glib_2_32_compile.patch
     DEPENDERS patch
     WORKING_DIRECTORY ${CHROMIUM_SOURCE_DIR}/src
     )
@@ -107,7 +117,7 @@ if(BUILD_CEF OR BUILD_ONLY_CEF)
     ExternalProject_Add_Step(
     cef
     gcc-4-7-patch
-    COMMAND ${CMAKE_SCRIPT_PATH}/patch.sh ${CMAKE_SOURCE_DIR}/cmake/patches/cef_gcc47_compile_fix.patch
+    COMMAND ${PATCH_SCRIPT_PATH} ${CMAKE_SOURCE_DIR}/cmake/patches/cef_gcc47_compile_fix.patch
     DEPENDERS patch
     WORKING_DIRECTORY ${CHROMIUM_SOURCE_DIR}/src
     )
@@ -115,7 +125,7 @@ if(BUILD_CEF OR BUILD_ONLY_CEF)
     ExternalProject_Add_Step(
     cef
     bison-2-6-patch
-    COMMAND ${CMAKE_SCRIPT_PATH}/patch.sh ${CMAKE_SOURCE_DIR}/cmake/patches/chromium-bison-2.6.patch
+    COMMAND ${PATCH_SCRIPT_PATH} ${CMAKE_SOURCE_DIR}/cmake/patches/chromium-bison-2.6.patch
     DEPENDERS patch
     WORKING_DIRECTORY ${CHROMIUM_SOURCE_DIR}/src
     )
@@ -150,15 +160,18 @@ if(BUILD_CEF OR BUILD_ONLY_CEF)
   add_dependencies(cef depot_tools)
   add_dependencies(cef chromium)
   add_dependencies(cef fetch_cef)
-  add_dependencies(cef wxWidget-2-9)
 
   set(CEF_LIB_DIR ${CHROMIUM_SOURCE_DIR}/src/out/Release/lib.target)
+  set(CEF_FFMPEG_LIB_DIR ${CHROMIUM_SOURCE_DIR}/src/out/Release)
   set(CEF_LIBRARIES "${CEF_LIB_DIR}/libcef_desura.so")
+  set(CEF_FFMPEG_LIB "${CEF_FFMPEG_LIB_DIR}/libffmpegsumo.so")
   set(CEF_INCLUDE_DIRS "${CEF_SOURCE_DIR}")
 
   if(NOT WIN32)
     install(FILES ${CEF_LIBRARIES}
-          DESTINATION ${LIB_INSTALL_DIR})
+            DESTINATION ${LIB_INSTALL_DIR})
+    install(FILES ${CEF_FFMPEG_LIB}
+            DESTINATION ${LIB_INSTALL_DIR}/cefmedia)
   endif()
 else(BUILD_CEF)
   ExternalProject_Add(
@@ -166,7 +179,7 @@ else(BUILD_CEF)
     URL ${CEF_URL}
     URL_MD5 ${CEF_MD5}
     UPDATE_COMMAND ""
-    PATCH_COMMAND ${CMAKE_SCRIPT_PATH}/patch.${SCRIPT_PREFIX} ${CMAKE_SOURCE_DIR}/cmake/patches/cef.patch
+    PATCH_COMMAND ${PATCH_SCRIPT_PATH} ${CMAKE_SOURCE_DIR}/cmake/patches/cef.patch
     CONFIGURE_COMMAND ""
     BUILD_COMMAND "" 
     INSTALL_COMMAND ""

@@ -1,19 +1,20 @@
 # Contributor: Sven-Hendrik Haase <sh@lutzhaase.com>
-# Contributor: Matthias "matthiaskrgr" Krüger
-# Maintainer: Jookia <166291@gmail.com>
+# Contributor: Jookia <166291@gmail.com>
+# Maintainer: Matthias "matthiaskrgr" Krüger
+
 pkgname=desurium-cef
-pkgver=0.8.0_rc4
+pkgver=0.8.0_rc8
 pkgrel=1
-pkgdesc="A community-driven digital distribution service for gamers (open source version)"
+pkgdesc="Chromium Embedded Framework, runtime dependency for desurium."
 url="http://github.com/lodle/Desurium"
-license=('GPL3')
+license=('BSD')
 arch=('i686' 'x86_64')
-makedepends=('cmake' 'git' 'boost' 'subversion' 'scons' 'gendesk' 'sed')
-depends=('v8' 'tinyxml' 'sqlite' 'boost-libs' 'bzip2' 'gtk2' 'openssl'
-         'curl' 'c-ares' 'libnotify' 'nss' 'libgnome-keyring' 'bison'
-         'cups' 'flex' 'alsa-lib' 'libjpeg-turbo' 'libxpm' 'libx11'
-         'gconf' 'xdg-user-dirs' 'flac' 'libpng' 'speex' 'zlib' 'gperf'
-         'xdg-utils' 'libwebp' 'libevent' 'libxslt' 'yasm' 'libxxf86vm')
+makedepends=('cmake' 'git' 'boost' 'scons' 'gendesk' 'sed')
+depends=('v8' 'tinyxml' 'boost-libs' 'flashplugin' 'libxxf86vm' 'gperf'
+         'curl' 'c-ares' 'libnotify' 'libgnome-keyring' 'yasm' 'libxslt'
+         'cups' 'flex' 'alsa-lib' 'libjpeg-turbo' 'speex' 'libevent'
+         'gconf' 'xdg-user-dirs' 'flac' 'libwebp' 'xdg-utils')
+conflicts=('desurium-git')
 
 
 build() {
@@ -23,27 +24,20 @@ build() {
   if [[ -d "Desurium" ]]; then
     cd "Desurium"
     msg "Removing build files..."
-    # if this fails, git clean -dfx
     rm build_cef -rf
     msg "Updating..."
-    git pull
-    msg "The local files are updated."
+    git fetch
+    msg "The repo has been updated."
   else
     msg "Cloning..."
     git clone git://github.com/lodle/Desurium.git "Desurium"
   fi
 
   cd "$srcdir/Desurium"
-  git checkout $pkgver
-
+  echo "Note: checking out '$pkgver'."
+  git checkout --quiet $pkgver
   msg "GIT checkout done or server timeout"
   msg "Starting build..."
-
-  MULTILIB=0
-
-  if pacman -Qsq binutils-multilib ; then
-    MULTILIB=1
-  fi
 
   cd "$srcdir/Desurium"
   if [ ! -d build_cef ] ; then
@@ -53,7 +47,6 @@ build() {
   msg "Running cmake..."
 
   CMAKE_ARGS="
-    -D32BIT_SUPPORT=$MULTILIB
     -DCMAKE_INSTALL_PREFIX=/usr
     -DBINDIR=/usr/bin
     -DDATADIR=/usr/share/
@@ -64,11 +57,6 @@ build() {
   make
 }
 
-#check() {
-#  cd "$srcdir/Desurium/build"
-#  make test
-#}
-
 package() {
   cd "$srcdir/Desurium/build_cef"
 
@@ -76,8 +64,7 @@ package() {
   make DESTDIR="$pkgdir/" install
 
   msg "Compiling done"
-  
-  rm ${pkgdir}/usr/lib/desura/libwx_gtk2u_desura-2.9.so.3 # ugly hack to avoid file conflicts
+
 }
 
 # vim:set ts=2 sw=2 et:

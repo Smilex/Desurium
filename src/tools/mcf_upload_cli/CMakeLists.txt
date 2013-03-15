@@ -4,8 +4,8 @@ include_directories(
 
 file(GLOB Sources code/*.cpp )
 
-add_executable(mfc_upload_cli ${Sources})
-target_link_libraries(mfc_upload_cli
+add_executable(mcf_upload_cli ${Sources})
+target_link_libraries(mcf_upload_cli
     managers
     managers_window
     threads
@@ -13,8 +13,6 @@ target_link_libraries(mfc_upload_cli
     util
     util_fs
     ${CURL_LIBRARIES}
-    ${OPENSSL_LIBRARIES}
 )
 
-install(TARGETS mfc_upload_cli
-        DESTINATION "${BIN_INSTALL_DIR}")
+install_executable(mcf_upload_cli)

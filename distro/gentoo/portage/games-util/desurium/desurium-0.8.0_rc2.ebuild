@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: $
 
-EAPI=4
+EAPI=5
 
 unset GIT_ECLASS
 
@@ -69,14 +69,14 @@ GAMESDEPEND="
 COMMON_DEPEND="
 	app-arch/bzip2
 	dev-db/sqlite
-	>=dev-libs/boost-1.47
+	>=dev-libs/boost-1.47:=
 	dev-libs/openssl:0
 
 	|| ( <dev-libs/tinyxml-2.6.2-r2[-stl]
 	    >=dev-libs/tinyxml-2.6.2-r2
 	)
 
-	dev-lang/v8
+	<dev-lang/v8-3.16.5:=
 	|| (
 		net-misc/curl[adns]
 		net-misc/curl[ares]
@@ -152,8 +152,8 @@ src_compile() {
 src_install() {
 	cmake-utils_src_install
 
-	doicon -s 256 "${FILESDIR}/${PN}.png"
-	make_desktop_entry "${GAMES_BINDIR}/desura" "Desurium"
+	newicon -s scalable "${S}/src/branding_${PN}/sources/desubot.svg" "${PN}.svg"
+	make_desktop_entry "${GAMES_BINDIR}/desura" "Desurium" "${PN}"
 
 	prepgamesdirs
 }

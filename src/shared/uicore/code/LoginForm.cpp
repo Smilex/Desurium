@@ -104,8 +104,8 @@ class LoginLink : public StripMenuButton
 public:
 	LoginLink(wxWindow* parent, wxString text, uint32 style) : StripMenuButton(parent, text)
 	{
-		wxColor linkColor = (wxColour)GetThemeManager()->getColor("formlogin", "link-fg");
-		wxColor hoverColor = (wxColour)GetThemeManager()->getColor("formlogin", "link-hov-fg");
+		wxColor linkColor = (wxColour)GetThemeManager().getColor("formlogin", "link-fg");
+		wxColor hoverColor = (wxColour)GetThemeManager().getColor("formlogin", "link-hov-fg");
 
 		Managers::LoadTheme(this, "formlogin");
 
@@ -566,7 +566,7 @@ void LoginForm::onTextChange(wxCommandEvent& event)
 	if (textCtrl->GetValue() == defaultText)
 		colorName = "tb-default-fg";
 
-	wxColor color = wxColor(GetThemeManager()->getColor("formlogin", colorName));
+	wxColor color = wxColor(GetThemeManager().getColor("formlogin", colorName));
 
 	textCtrl->SetForegroundColour(color);
 	textCtrl->Refresh();
@@ -722,7 +722,7 @@ void LoginForm::onStartLogin()
 #ifdef WIN32
 	m_pLogThread = new LoginThread(gcString(user.wc_str()).c_str(), gcString(pass.wc_str()).c_str(), this);
 #else
-	m_pLogThread = new LoginThread(gcString(user.wc_str().data()).c_str(), gcString(pass.wc_str().data()).c_str(), this);
+	m_pLogThread = new LoginThread(user.c_str(), pass.c_str(), this);
 #endif
 
 	m_tbPassword->SetValue("****************");

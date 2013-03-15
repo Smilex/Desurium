@@ -4,6 +4,12 @@ elseif(WIN32)
   set(DEFAULT_INSTALL_DIR "")
 endif()
 
+if(MINGW OR WIN32)
+  set(SYSTEM_ROOT_DIR "C:/")
+else()
+  set(SYSTEM_ROOT_DIR "/")
+endif()
+
 set(CMAKE_INSTALL_PREFIX ${DEFAULT_INSTALL_DIR}
     CACHE STRING "Desura Install Prefix")
 set(BINDIR ""
@@ -12,7 +18,7 @@ set(RUNTIME_LIBDIR "lib"
     CACHE STRING "Desura Lib Dir")
 set(DATADIR ""
     CACHE STRING "Desura Data Install Dir")
-set(DESKTOPDIR "/usr/share/application"
+set(DESKTOPDIR "/usr/share/applications"
     CACHE STRING "Desktop installation directory")
 
 # set variables used by cmake
@@ -21,7 +27,7 @@ if(IS_ABSOLUTE ${BINDIR})
   set(BIN_INSOURCE_DIR ${BINDIR})
 else()
   set(BIN_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/${BINDIR})
-  file(RELATIVE_PATH BIN_INSOURCE_DIR "/" ${BIN_INSTALL_DIR})
+  file(RELATIVE_PATH BIN_INSOURCE_DIR ${SYSTEM_ROOT_DIR} ${BIN_INSTALL_DIR})
 endif()
 
 if(IS_ABSOLUTE ${RUNTIME_LIBDIR})

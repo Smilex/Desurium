@@ -9,8 +9,6 @@ add_definitions(
   -D_FILE_OFFSET_BITS=64
 )
 
-set(SCRIPT_PREFIX sh)
-
 ###############################################################################
 # some compiler flags
 ###############################################################################
@@ -32,14 +30,49 @@ else()
 endif()
 
 # wxWidgets config
-add_definitions(-D__WXGTK__)
+if(MINGW)
+  add_definitions(-D__WXMSW__)
+else()
+  add_definitions(-D__WXGTK__)
+endif()
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   set(64BIT TRUE)
-  message("-- detected 64bit")
-  
-  option(32BIT_SUPPORT "enable support for 32bit applications (requires 32bit libraries)" OFF)
+  message("-- Detected 64bit")
+  try_compile(MULTILIB_TEST_COMPILE
+    "${CMAKE_TEST_PROJECTS_BIN}/multilib_test"
+    "${CMAKE_TEST_PROJECTS}/multilib_test"
+    "multilib_test"
+    "multilib_test")
+  if(MULTILIB_TEST_COMPILE)
+    message("-- Working multilib, enable 32bit support")
+    option(32BIT_SUPPORT "enable support for 32bit applications (requires 32bit libraries)" ON)
+  else()
+    message("-- Not working multilib, disable 32bit support")
+    option(32BIT_SUPPORT "enable support for 32bit applications (requires 32bit libraries)" OFF)
+  endif()
 else()
   set(64BIT FALSE)
   message("-- detected 32bit")
+endif()
+
+# some mingw things
+if(MINGW)
+  set(WIN_TARGET 0x0502) # Windows XP SP2
+  set(WIN_SDK_MIN 0x0600) # Windows Vista
+  set(WIN_IE_VERSION 0x0603) # IE 6 SP2
+  add_definitions(-U__STRICT_ANSI__
+                  -DWINVER=${WIN_TARGET}
+                  -D_WIN32_WINNT=${WIN_SDK_MIN}
+                  -D_WIN32_IE=${WIN_IE_VERSION}
+                  -DDONT_INCLUDE_AFXWIN
+                  -DMINGW_HAS_SECURE_API
+                  -DBOOST_THREAD_USE_LIB)
+  # link libgcc staticly
+  add_compiler_flags(-static-libgcc)
+  macro(use_unicode_here)
+    add_definitions(-D_UNICODE)
+    add_definitions(-DUNICODE)
+    add_definitions(-DwxUSE_UNICODE)
+  endmacro()
 endif()

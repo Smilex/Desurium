@@ -15,6 +15,7 @@
 #                                       debugging stuff
 #   PACKAGE_TYPE    DEB                 Which packages should be created with "make package"
 #   FORCE_SYS_DEPS  OFF                 Force the use of system libs
+#   WITH_FLASH      ON                  Build with flash support
 #
 #   BREAKPAD_URL                        URL to breakdpad archive, should be rev. 850
 #   CEF_URL                             URL to cef archive, should be rev. 291
@@ -22,6 +23,9 @@
 #   CURL_URL                            URL to curl archive
 #   DEPOT_TOOLS_URL                     URL to depot_tools archive
 #   WXWIDGET_URL                        URL to wxWidget archive, has to be 2.9.3
+#
+# cef options:
+#   H264_SUPPORT    OFF                 build ffmpeg with mpeg-4 support. Be aware of patent and license problems
 #
 # installation options:
 #   BINDIR          ./bin               the directory where binaries should be installed, a relative path will be
@@ -31,6 +35,8 @@
 #   DESKTOPDIR      depends on OS       the directory where the desktop file or link should be installed
 #
 # unix-only options:
+#   FORCE_BUNDLED_WXGTK			ON: bundle wxGTK 2.9.3
+#                   ON			OFF: use system wxGTK (has to be 2.9.x, work stable on 2.9.3)
 #   DEBUG_EXTERNAL  OFF                 same as DEBUG, but for externap deps
 #   WITH_ARES       ON                  build CURL with ares support (c-ares REQUIRED)
 #   DIR_TYPE        SINGLE              how should game data be stored?
@@ -41,8 +47,8 @@
 #                   OFF
 #
 # wxWidgets select correct  version
-#   wxWidgets_CONFIG_EXECUTABLE         path to wx-config (version 2.9.3)
-#   wxWidgets_wxrc_EXECUTABLE           path to wxrc (version 2.9.3)
+#   wxWidgets_CONFIG_EXECUTABLE         path to wx-config (version 2.9.x)
+#   wxWidgets_wxrc_EXECUTABLE           path to wxrc (version 2.9.x)
 #
 # windows-only options:
 #   BOOST_URL                           URL to boost archive
@@ -62,14 +68,14 @@
 # some overrides
 ###############################################################################
 
-set(CMAKE_USER_MAKE_RULES_OVERRIDE
-   ${CMAKE_SOURCE_DIR}/cmake/scripts/c_flag_overrides.cmake)
-set(CMAKE_USER_MAKE_RULES_OVERRIDE_CXX
-   ${CMAKE_SOURCE_DIR}/cmake/scripts/cxx_flag_overrides.cmake)
-
 # TODO: silent output for externel dependencies
 project(Desura)
-cmake_minimum_required(VERSION 2.8.5)
+
+if(APPLE) # see #418
+  cmake_minimum_required(VERSION 2.8.10)
+else()
+  cmake_minimum_required(VERSION 2.8.5)
+endif()
 
 ###############################################################################
 # some globale variables
@@ -103,6 +109,9 @@ include(CheckCompiler)
 include(SetInstallPaths)
 include(ProcessorCount)
 include(Package)
+if(UNIX)
+  include(FindPkgConfig)
+endif()
 
 ###############################################################################
 # find all packages which are needed
@@ -113,11 +122,17 @@ if(NOT WIN32)
 endif()
 
 if(NOT BUILD_ONLY_CEF)
-  if(MINGW)
+  if(WIN32)
     set(Boost_ADDITION_LIBS ${Boost_ADDITION_LIBS} chrono)
   endif()
   if(BUILD_TESTS)
-    set(Boost_ADDITION_LIBS ${Boost_ADDITION_LIBS} prg_exec_monitor test_exec_monitor unit_test_framework)
+    set(Boost_ADDITION_LIBS ${Boost_ADDITION_LIBS} test_exec_monitor unit_test_framework)
+  endif()
+  
+  set(Boost_USE_MULTITHREADED ON)
+  if(WIN32)
+    set(Boost_USE_STATIC_LIBS OFF)
+    set(Boost_USE_STATIC_RUNTIME OFF)
   endif()
   find_package(Boost COMPONENTS date_time filesystem thread system ${Boost_ADDITION_LIBS})
   
@@ -127,37 +142,33 @@ if(NOT BUILD_ONLY_CEF)
 
   if(NOT WIN32)
     find_package(GTK2 REQUIRED)
+    find_package(X11 REQUIRED)
+    if(NOT X11_Xt_FOUND)
+      message(FATAL_ERROR "libXt is required")
+    endif()
+    pkg_check_modules(GTHREAD2 REQUIRED gthread-2.0)
+    find_package(Threads)
     find_package(Notify REQUIRED)
     if(NOT HAVE_LIBNOTIFY_0_7)
       message(FATAL_ERROR "libnotify >= 0.7 is required")
     endif()
   endif()
-  if(NOT WIN32)
-    find_package(OpenSSL REQUIRED)
-  endif()
   find_package(BZip2 ${REQUIRED_IF_OPTION})
   find_package(Sqlite ${REQUIRED_IF_OPTION})
   find_package(TinyXML ${REQUIRED_IF_OPTION})
-  find_package(v8 ${REQUIRED_ON_UNIX})
-endif()
-
-find_package(wxWidgets 2.9 COMPONENTS richtext ${REQUIRED_IF_OPTION})
-if(wxWidgets_FOUND)
-  try_compile(
-    WXWIDGET_2_9_TEST_COMPILE
-    "${CMAKE_TEST_PROJECTS_BIN}/wxWidget_2.9_test"
-    "${CMAKE_TEST_PROJECTS}/wxWidget_2.9_test"
-    "wxWidget_2_9_test"
-    "wxWidget_2_9_test"
-    CMAKE_FLAGS
-    "-DwxWidgets_CONFIG_EXECUTABLE=${wxWidgets_CONFIG_EXECUTABLE}"
-    "-DwxWidgets_wxrc_EXECUTABLE=${wxWidgets_wxrc_EXECUTABLE}")
-  if(NOT WXWIDGET_2_9_TEST_COMPILE)
-    message(STATUS "no working wxWidgets-2.9.3 found")
-    unset(wxWidgets_FOUND)
+  if(NOT TINYXML_HAS_2_6_API)
     if(REQUIRED_IF_OPTION)
-      message(FATAL_ERROR "no wxWidget-2.9.3 found")
+      message(FATAL_ERROR "tinyxml >= 2.6 is required")
+    else()
+      message("tinyxml >= 2.6 is required. Using builtin")
+      set(TINYXML_FOUND FALSE)
     endif()
+  endif()
+
+  find_package(v8 ${REQUIRED_ON_UNIX})
+
+  if(NOT FORCE_BUNDLED_WXGTK)
+    find_package(wxWidgets 2.9 COMPONENTS richtext ${REQUIRED_IF_OPTION})
   endif()
 endif()
 
@@ -165,6 +176,20 @@ find_package(PythonInterp REQUIRED)
 
 if(WIN32)
   find_package(PythonLibs REQUIRED)
+  # only define this if MFC was found
+  # VC express and mingw doesn't provide MFC, but other versions of VC do
+  find_package(MFC)
+  if(MFC_FOUND)
+    add_definitions(-DMFC_FOUND)
+  endif()
+endif()
+
+find_package(Patch REQUIRED)
+if(MSVC)
+  configure_file(${CMAKE_SCRIPT_PATH}/patch.bat ${CMAKE_GEN_SRC_DIR}/scripts/patch.bat @ONLY)
+  set(PATCH_SCRIPT_PATH ${CMAKE_GEN_SRC_DIR}/scripts/patch.bat)
+else()
+  set(PATCH_SCRIPT_PATH ${CMAKE_SCRIPT_PATH}/patch.sh)
 endif()
 
 ###############################################################################
@@ -230,7 +255,7 @@ else()
   unset(DEPOT_TOOLS_MD5)
 endif()
 
-set(WXWIDGET_URL_DEFAULT ftp://ftp.wxwidgets.org/pub/2.9.3/wxWidgets-2.9.3.tar.bz2)
+set(WXWIDGET_URL_DEFAULT http://garr.dl.sourceforge.net/project/wxwindows/2.9.3/wxWidgets-2.9.3.tar.bz2)
 set(WXWIDGET_URL ${WXWIDGET_URL_DEFAULT}
     CACHE STRING "URL to wxWidget 2.9.3 archive")
 if(WXWIDGET_URL STREQUAL WXWIDGET_URL_DEFAULT)
@@ -248,11 +273,11 @@ set(V8_SVN http://v8.googlecode.com/svn/tags/3.9.15/)
 # build some externel projects
 ###############################################################################
 
-if(NOT wxWidgets_FOUND)
-  include(BuildwxWidgets)
-endif()
-
 if(NOT BUILD_ONLY_CEF)
+  if(NOT wxWidgets_FOUND)
+    include(BuildwxWidgets)
+  endif()
+
   if(NOT Boost_FOUND)
     include(BuildBoost)
   endif()
@@ -296,10 +321,12 @@ if(NOT BUILD_ONLY_CEF)
     add_dependencies(sqlite3x boost)
   endif()
 
+  if(WITH_FLASH)
+    add_subdirectory(third_party/npwrapper)
+  endif()
   ###############################################################################
   # build desura
   ###############################################################################
   add_subdirectory(src)
   add_subdirectory(build_out)
 endif()
-
