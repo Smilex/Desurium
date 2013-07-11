@@ -509,13 +509,10 @@ bool launchProcessXDG(const char* exe, const char* libPath)
 	(void)chdir(wd.c_str());
 
 	ERROR_OUTPUT("Launching with xdg-open");
-	execlp("xdg/xdg-open", "xdg/xdg-open", fullExe.c_str(), NULL);
-
-	ERROR_OUTPUT("Must have failed. Launching with gnome-open");
-	execlp("gnome-open", "gnome-open", fullExe.c_str(), NULL);
+	execlp("xdg-open", "xdg-open", fullExe.c_str(), NULL);
 	
 	//um shit. We shouldnt be here. :(
-	printf("Failed to exec gnome-open or xdg-open for %s. Error: %d\n", fullExe.c_str(), errno);
+	printf("Failed to exec xdg-open for %s. Error: %d\n", fullExe.c_str(), errno);
 	exit(-1);
 	return false;
 }
@@ -543,8 +540,7 @@ bool launchFolder(const char* path)
 
 	setenv("LD_LIBRARY_PATH", "", 1);
 
-	execlp("xdg/xdg-open", "xdg/xdg-open", fullPath.c_str(), NULL);
-	execlp("gnome-open", "gnome-open", fullPath.c_str(), NULL);
+	execlp("xdg-open", "xdg-open", fullPath.c_str(), NULL);
 	
 	//um shit. We shouldnt be here. :(
 	printf("Failed to execlp %s. Error: %d\n", fullPath.c_str(), errno);
@@ -554,6 +550,10 @@ bool launchFolder(const char* path)
 
 bool launchProcess(const char* exe, const std::map<std::string, std::string> &info)
 {
+	if (!exe)
+		return false;
+		
+	ERROR_OUTPUT(__func__);
 	std::string fullExe = expandPath(exe);
 	
 	if (!fileExists(fullExe.c_str()))
@@ -562,19 +562,16 @@ bool launchProcess(const char* exe, const std::map<std::string, std::string> &in
 	//we double fork so that the new process is not a child of this process
 	pid_t pid = fork();
 	
-	if (pid)
+	if (pid != 0)
 	{
 		int status;
 		waitpid(pid, &status, 0);
-		return true;
+		
+		if (WEXITSTATUS(status) == 0)
+			return true;
+		else
+			return false;
 	}
-	
-	//child one
-	pid = fork();
-	
-	if (pid)
-		exit(0);
-	
 	
 	UTIL::FS::Path path(fullExe.c_str(), "", true);
 	

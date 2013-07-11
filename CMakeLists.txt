@@ -35,7 +35,7 @@
 #   DESKTOPDIR      depends on OS       the directory where the desktop file or link should be installed
 #
 # unix-only options:
-#   FORCE_BUNDLED_WXGTK			ON: bundle wxGTK 2.9.3
+#   FORCE_BUNDLED_WXGTK  		ON: bundle wxGTK 2.9.3
 #                   ON			OFF: use system wxGTK (has to be 2.9.x, work stable on 2.9.3)
 #   DEBUG_EXTERNAL  OFF                 same as DEBUG, but for externap deps
 #   WITH_ARES       ON                  build CURL with ares support (c-ares REQUIRED)
@@ -45,6 +45,10 @@
 #                                       PORTABLE: in the desura installaion dir
 #   INSTALL_DESKTOP_FILE                INSTALL a desktop file in /usr/share/applications
 #                   OFF
+#
+# Linux-only options:
+#   DESKTOP_EXE     desura              the value of Exe in the desktop file
+#   DESKTOP_ICON    desura              the value of Icon in the desktop file
 #
 # wxWidgets select correct  version
 #   wxWidgets_CONFIG_EXECUTABLE         path to wx-config (version 2.9.x)
@@ -74,7 +78,7 @@ project(Desura)
 if(APPLE) # see #418
   cmake_minimum_required(VERSION 2.8.10)
 else()
-  cmake_minimum_required(VERSION 2.8.5)
+  cmake_minimum_required(VERSION 2.8.2)
 endif()
 
 ###############################################################################
@@ -107,7 +111,6 @@ include(macros)
 include(parsearguments)
 include(CheckCompiler)
 include(SetInstallPaths)
-include(ProcessorCount)
 include(Package)
 if(UNIX)
   include(FindPkgConfig)
@@ -126,7 +129,7 @@ if(NOT BUILD_ONLY_CEF)
     set(Boost_ADDITION_LIBS ${Boost_ADDITION_LIBS} chrono)
   endif()
   if(BUILD_TESTS)
-    set(Boost_ADDITION_LIBS ${Boost_ADDITION_LIBS} test_exec_monitor unit_test_framework)
+    set(Boost_ADDITION_LIBS ${Boost_ADDITION_LIBS} unit_test_framework)
   endif()
   
   set(Boost_USE_MULTITHREADED ON)
@@ -207,7 +210,7 @@ if(WIN32)
   endif()
 endif()
 
-set(BREAKPAD_URL_DEFAULT "https://github.com/downloads/lodle/Desurium/breakpad-850.tar.gz")
+set(BREAKPAD_URL_DEFAULT "https://github.com/downloads/desura/Desurium/breakpad-850.tar.gz")
 set(BREAKPAD_URL ${BREAKPAD_URL_DEFAULT}
     CACHE STRING "URL to breakpad")
 if(BREAKPAD_URL STREQUAL BREAKPAD_URL_DEFAULT)
@@ -217,7 +220,7 @@ else()
 endif()
 
 
-set(CEF_URL_DEFAULT "https://github.com/downloads/lodle/Desurium/cef-291.tar.gz")
+set(CEF_URL_DEFAULT "https://github.com/downloads/desura/Desurium/cef-291.tar.gz")
 set(CEF_URL ${CEF_URL_DEFAULT}
     CACHE STRING "URL to cef, has to be revision 291")
 if(CEF_URL STREQUAL CEF_URL_DEFAULT)
@@ -246,7 +249,7 @@ if(WIN32 OR NOT CURL_FOUND)
   endif()
 endif()
 
-set(DEPOT_TOOLS_URL_DEFAULT "https://github.com/downloads/lodle/Desurium/depot_tools-145556-2.tar.gz")
+set(DEPOT_TOOLS_URL_DEFAULT "https://github.com/downloads/desura/Desurium/depot_tools-145556-2.tar.gz")
 set(DEPOT_TOOLS_URL ${DEPOT_TOOLS_URL_DEFAULT}
     CACHE STRING "URL to depot_tools")
 if(DEPOT_TOOLS_URL STREQUAL DEPOT_TOOLS_URL_DEFAULT)
